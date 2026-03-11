@@ -8,7 +8,7 @@ using Newtonsoft.Json;
 
 public class AIManager : MonoBehaviour {
     [Header("API 設定")]
-    [SerializeField] private string apiKey = "AIzaSyDiBuI-fGSiaG1945hku8_OCsdZ-w-rVbM"; // 建議之後用設定檔保存
+    [SerializeField] private string apiKey = "AIzaSyAgWjzv21ddeYLTrg7CGvey0S-_MM1vkDE"; 
     private string url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent";
 
     [Header("NPC 設定")]
@@ -23,14 +23,14 @@ public class AIManager : MonoBehaviour {
     [Header("打字機設定")]
     public float typingSpeed = 0.05f;
 
-    [Header("語音設定")]
+    [Header("語音輸出設定")]
     public AudioSource voicePlayer; 
 
     private List<Content> chatHistory = new List<Content>();
     private Coroutine typewriterCoroutine;
 
     void Start() {
-        // 設定初始個性
+        // 初始化個性設定
         chatHistory.Add(new Content {
             role = "user",
             parts = new List<Part> { new Part { text = $"從現在起，你的個性設定如下：{npcPersonality}。請以此身分開始對話。" } }
@@ -40,10 +40,13 @@ public class AIManager : MonoBehaviour {
             role = "model",
             parts = new List<Part> { new Part { text = "沒問題，我已經準備好以此身分與你交流了！請問有什麼事嗎？" } }
         });
+        Debug.Log("老皮的大腦已就緒。");
     }
 
+    // --- 文字發送 ---
     public void OnSendClick() {
         if (string.IsNullOrEmpty(inputField.text)) return;
+        Debug.Log("發送文字訊息: " + inputField.text);
 
         chatHistory.Add(new Content {
             role = "user",
@@ -61,6 +64,40 @@ public class AIManager : MonoBehaviour {
         var requestData = new { contents = chatHistory };
         string jsonPayload = JsonConvert.SerializeObject(requestData);
 
+        yield return SendRequest(jsonPayload);
+        if(sendButton != null) sendButton.interactable = true;
+    }
+
+    // --- 語音發送 (由 GeminiAudioHandler 呼叫) ---
+    public void SendAudioToGemini(byte[] audioData) {
+        string base64Audio = System.Convert.ToBase64String(audioData);
+        StartCoroutine(PostAudioToGemini(base64Audio));
+    }
+
+    IEnumerator PostAudioToGemini(string base64Audio) {
+        Debug.Log("正在將語音上傳至 Gemini...");
+        responseText.text = "老皮正在聽你說話...";
+        if(sendButton != null) sendButton.interactable = false;
+
+        var requestData = new {
+            contents = new[] {
+                new {
+                    role = "user",
+                    parts = new object[] {
+                        new { text = "請聽這段語音並回答我：" }, 
+                        new { inline_data = new { mime_type = "audio/wav", data = base64Audio } }
+                    }
+                }
+            }
+        };
+
+        string jsonPayload = JsonConvert.SerializeObject(requestData);
+        yield return SendRequest(jsonPayload);
+        if(sendButton != null) sendButton.interactable = true;
+    }
+
+    // --- 網路請求核心 ---
+    IEnumerator SendRequest(string jsonPayload) {
         using (UnityWebRequest request = new UnityWebRequest($"{url}?key={apiKey}", "POST")) {
             byte[] bodyRaw = Encoding.UTF8.GetBytes(jsonPayload);
             request.uploadHandler = new UploadHandlerRaw(bodyRaw);
@@ -74,24 +111,20 @@ public class AIManager : MonoBehaviour {
                 if (response.candidates != null && response.candidates.Count > 0) {
                     string aiReply = response.candidates[0].content.parts[0].text;
                     
-                    // 關鍵修改：這裡改為呼叫 TypeText，才會啟動打字機和語音
                     if (typewriterCoroutine != null) StopCoroutine(typewriterCoroutine);
                     typewriterCoroutine = StartCoroutine(TypeText(aiReply));
 
                     chatHistory.Add(new Content { role = "model", parts = new List<Part> { new Part { text = aiReply } } });
                 }
             } else {
-                Debug.LogError("API Error: " + request.downloadHandler.text);
-                responseText.text = "連線失敗，請檢查網路。";
+                Debug.LogError("Gemini API 錯誤: " + request.downloadHandler.text);
+                responseText.text = "連線失敗，請檢查 API Key。";
             }
         }
-        if(sendButton != null) sendButton.interactable = true;
     }
 
     IEnumerator TypeText(string text) {
-        // 先觸發語音下載與播放
         StartCoroutine(DownloadAndPlayVoice(text));
-
         responseText.text = "";
         foreach (char letter in text.ToCharArray()) {
             responseText.text += letter;
@@ -100,24 +133,18 @@ public class AIManager : MonoBehaviour {
     }
 
     IEnumerator DownloadAndPlayVoice(string text) {
-        // 限制語音長度（Google TTS 免費版限制）
         string shortText = text.Length > 100 ? text.Substring(0, 100) : text;
-    
         string ttsUrl = "https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&q=" 
                     + UnityWebRequest.EscapeURL(shortText) + "&tl=zh-TW";
 
         using (UnityWebRequest www = UnityWebRequestMultimedia.GetAudioClip(ttsUrl, AudioType.MPEG)) {
             yield return www.SendWebRequest();
-
             if (www.result == UnityWebRequest.Result.Success) {
-                Debug.Log("語音下載成功，開始播放！");
                 AudioClip clip = DownloadHandlerAudioClip.GetContent(www);
                 if (voicePlayer != null) {
                     voicePlayer.clip = clip;
                     voicePlayer.Play();
                 }
-            } else {
-                Debug.LogError("語音下載失敗：" + www.error);
             }
         }
     }
