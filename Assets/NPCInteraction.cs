@@ -1,23 +1,38 @@
 using UnityEngine;
 
 public class NPCInteraction : MonoBehaviour {
-    public GameObject dialoguePanel; // 拖入你的 UI 面板
+    public GameObject dialoguePanel; // 拖入你的對話面板
+    public float interactDistance = 5f; // 設定多近才能點到
 
     void Update() {
-        if (Input.GetMouseButtonDown(0)) { // 偵測左鍵點擊
+        // 偵測滑鼠左鍵點擊
+        if (Input.GetMouseButtonDown(0)) {
             Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
             RaycastHit hit;
 
-            if (Physics.Raycast(ray, out hit)) {
-                if (hit.collider.CompareTag("NPC")) { // 確保角色 Tag 設為 NPC
+            // 射出一道隱形射線
+            if (Physics.Raycast(ray, out hit, interactDistance)) {
+                // 檢查打到的物件標籤是不是 NPC
+                if (hit.collider.CompareTag("NPC")) {
                     OpenDialogue();
                 }
             }
+        }
+
+        // 額外小功能：按 Esc 可以快速關閉視窗
+        if (Input.GetKeyDown(KeyCode.Escape)) {
+            CloseDialogue();
         }
     }
 
     void OpenDialogue() {
         dialoguePanel.SetActive(true);
-        Cursor.lockState = CursorLockMode.None; // 釋放滑鼠
+        // 讓滑鼠游標顯示出來（如果你的遊戲有鎖定滑鼠的話）
+        Cursor.lockState = CursorLockMode.None;
+        Cursor.visible = true;
+    }
+
+    public void CloseDialogue() {
+        dialoguePanel.SetActive(false);
     }
 }

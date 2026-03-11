@@ -4,11 +4,11 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Text;
 using TMPro;
-using Newtonsoft.Json; // 確保有這行
+using Newtonsoft.Json;
 
 public class AIManager : MonoBehaviour {
     [Header("API 設定")]
-    [SerializeField] private string apiKey = "AIzaSyAsRulNQWl-PiDbOHbL72Kj1V9WUnhQU4g";
+    [SerializeField] private string apiKey = "AIzaSyDcSuP9syMmp-VpjtWE7HgP1PQr0mz71IY"; // 建議之後用設定檔保存
     private string url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent";
 
     [Header("NPC 設定")]
@@ -20,17 +20,22 @@ public class AIManager : MonoBehaviour {
     public TMP_Text responseText;
     public UnityEngine.UI.Button sendButton;
 
-    // 重點修改：這裡改用 Content，對應 GeminiData.cs
+    [Header("打字機設定")]
+    public float typingSpeed = 0.05f;
+
+    [Header("語音設定")]
+    public AudioSource voicePlayer; 
+
     private List<Content> chatHistory = new List<Content>();
+    private Coroutine typewriterCoroutine;
 
     void Start() {
-        // 這裡是關鍵：直接把個性設定當成使用者的第一句話，讓 AI 了解它的角色
+        // 設定初始個性
         chatHistory.Add(new Content {
             role = "user",
             parts = new List<Part> { new Part { text = $"從現在起，你的個性設定如下：{npcPersonality}。請以此身分開始對話。" } }
         });
     
-        // 給 AI 一個模擬回覆，確認它接收到了
         chatHistory.Add(new Content {
             role = "model",
             parts = new List<Part> { new Part { text = "沒問題，我已經準備好以此身分與你交流了！請問有什麼事嗎？" } }
@@ -40,7 +45,6 @@ public class AIManager : MonoBehaviour {
     public void OnSendClick() {
         if (string.IsNullOrEmpty(inputField.text)) return;
 
-        // 記錄玩家的話
         chatHistory.Add(new Content {
             role = "user",
             parts = new List<Part> { new Part { text = inputField.text } }
@@ -51,10 +55,9 @@ public class AIManager : MonoBehaviour {
     }
 
     IEnumerator PostToGemini() {
-        responseText.text = "史蒂夫正在思考中...";
+        responseText.text = "老皮正在思考中...";
         if(sendButton != null) sendButton.interactable = false;
 
-        // 只封裝 contents，不加任何額外參數
         var requestData = new { contents = chatHistory };
         string jsonPayload = JsonConvert.SerializeObject(requestData);
 
@@ -70,15 +73,52 @@ public class AIManager : MonoBehaviour {
                 var response = JsonConvert.DeserializeObject<GeminiResponse>(request.downloadHandler.text);
                 if (response.candidates != null && response.candidates.Count > 0) {
                     string aiReply = response.candidates[0].content.parts[0].text;
-                    responseText.text = aiReply;
+                    
+                    // 關鍵修改：這裡改為呼叫 TypeText，才會啟動打字機和語音
+                    if (typewriterCoroutine != null) StopCoroutine(typewriterCoroutine);
+                    typewriterCoroutine = StartCoroutine(TypeText(aiReply));
+
                     chatHistory.Add(new Content { role = "model", parts = new List<Part> { new Part { text = aiReply } } });
                 }
             } else {
-                // 如果還是報錯，我們把錯誤碼印出來
                 Debug.LogError("API Error: " + request.downloadHandler.text);
-                responseText.text = "連線失敗，請檢查 API Key 或網路。";
+                responseText.text = "連線失敗，請檢查網路。";
             }
         }
         if(sendButton != null) sendButton.interactable = true;
+    }
+
+    IEnumerator TypeText(string text) {
+        // 先觸發語音下載與播放
+        StartCoroutine(DownloadAndPlayVoice(text));
+
+        responseText.text = "";
+        foreach (char letter in text.ToCharArray()) {
+            responseText.text += letter;
+            yield return new WaitForSeconds(typingSpeed);
+        }
+    }
+
+    IEnumerator DownloadAndPlayVoice(string text) {
+        // 限制語音長度（Google TTS 免費版限制）
+        string shortText = text.Length > 100 ? text.Substring(0, 100) : text;
+    
+        string ttsUrl = "https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&q=" 
+                    + UnityWebRequest.EscapeURL(shortText) + "&tl=zh-TW";
+
+        using (UnityWebRequest www = UnityWebRequestMultimedia.GetAudioClip(ttsUrl, AudioType.MPEG)) {
+            yield return www.SendWebRequest();
+
+            if (www.result == UnityWebRequest.Result.Success) {
+                Debug.Log("語音下載成功，開始播放！");
+                AudioClip clip = DownloadHandlerAudioClip.GetContent(www);
+                if (voicePlayer != null) {
+                    voicePlayer.clip = clip;
+                    voicePlayer.Play();
+                }
+            } else {
+                Debug.LogError("語音下載失敗：" + www.error);
+            }
+        }
     }
 }
