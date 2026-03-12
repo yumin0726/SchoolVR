@@ -8,7 +8,7 @@ using Newtonsoft.Json;
 
 public class AIManager : MonoBehaviour {
     [Header("API 設定")]
-    [SerializeField] private string apiKey = "AIzaSyCiGbOXsjGRUIg2Hv9rrJB-lbE09y0zrO0"; 
+    [SerializeField] private string apiKey = "AIzaSyAM4JmPAAVEKLnBAbPBmAEcMBGkHf7TSMc"; 
     private string url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent";
 
     [Header("NPC 設定")]
@@ -84,7 +84,7 @@ public class AIManager : MonoBehaviour {
                 new {
                     role = "user",
                     parts = new object[] {
-                        new { text = $"你是{npcPersonality}，請聽這段語音並以你的身分跟我對話，不要解釋語音內容，直接回答我：" }, 
+                        new { text = $"你是{npcPersonality}。請根據以下校園知識庫內容回答玩家的問題：\n{schoolKnowledge}\n\n玩家說的是：" }, 
                         new { inline_data = new { mime_type = "audio/wav", data = base64Audio } }
                     }
                 }
@@ -96,8 +96,13 @@ public class AIManager : MonoBehaviour {
         if(sendButton != null) sendButton.interactable = true;
     }
 
+    [Header("校園知識庫")]
+    [TextArea(10, 20)]
+    public string schoolKnowledge = "請在這裡貼上你的宜大資料...";
+
     // --- 網路請求核心 ---
     IEnumerator SendRequest(string jsonPayload) {
+        string enhancedPersonality = $"{npcPersonality}\n\n以下是你必須遵守的校園知識：\n{schoolKnowledge}";
         using (UnityWebRequest request = new UnityWebRequest($"{url}?key={apiKey}", "POST")) {
             byte[] bodyRaw = Encoding.UTF8.GetBytes(jsonPayload);
             request.uploadHandler = new UploadHandlerRaw(bodyRaw);

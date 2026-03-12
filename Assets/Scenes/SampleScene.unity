@@ -5846,13 +5846,14 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d550dfc137c32184aab8795995952180, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::AIManager
-  apiKey: AIzaSyCiGbOXsjGRUIg2Hv9rrJB-lbE09y0zrO0
+  apiKey: AIzaSyAM4JmPAAVEKLnBAbPBmAEcMBGkHf7TSMc
   npcPersonality: "\u4F60\u662F\u4E00\u500B\u838A\u56B4\u7684\u4EBA\uFF0C\u73FE\u5728\u662F\u5B9C\u862D\u5927\u5B78\u6821\u9577\u3002"
   inputField: {fileID: 1428949108}
   responseText: {fileID: 573059474}
   sendButton: {fileID: 951555397}
-  typingSpeed: 0.05
+  typingSpeed: 0.02
   voicePlayer: {fileID: 1571406162}
+  schoolKnowledge: "\u8ACB\u5728\u9019\u88E1\u8CBC\u4E0A\u4F60\u7684\u5B9C\u5927\u8CC7\u6599..."
 --- !u!4 &713349078
 Transform:
   m_ObjectHideFlags: 0
