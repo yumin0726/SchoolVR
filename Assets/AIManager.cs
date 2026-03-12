@@ -8,7 +8,7 @@ using Newtonsoft.Json;
 
 public class AIManager : MonoBehaviour {
     [Header("API 設定")]
-    [SerializeField] private string apiKey = "AIzaSyAgWjzv21ddeYLTrg7CGvey0S-_MM1vkDE"; 
+    [SerializeField] private string apiKey = "AIzaSyCiGbOXsjGRUIg2Hv9rrJB-lbE09y0zrO0"; 
     private string url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent";
 
     [Header("NPC 設定")]
@@ -84,7 +84,7 @@ public class AIManager : MonoBehaviour {
                 new {
                     role = "user",
                     parts = new object[] {
-                        new { text = "請聽這段語音並回答我：" }, 
+                        new { text = $"你是{npcPersonality}，請聽這段語音並以你的身分跟我對話，不要解釋語音內容，直接回答我：" }, 
                         new { inline_data = new { mime_type = "audio/wav", data = base64Audio } }
                     }
                 }
@@ -106,19 +106,25 @@ public class AIManager : MonoBehaviour {
 
             yield return request.SendWebRequest();
 
+            // --- 新增這行偵錯 ---
+            Debug.Log("API 原始回傳內容: " + request.downloadHandler.text); 
+
             if (request.result == UnityWebRequest.Result.Success) {
                 var response = JsonConvert.DeserializeObject<GeminiResponse>(request.downloadHandler.text);
-                if (response.candidates != null && response.candidates.Count > 0) {
+            
+                if (response != null && response.candidates != null && response.candidates.Count > 0) {
                     string aiReply = response.candidates[0].content.parts[0].text;
-                    
+                    Debug.Log("老皮說了: " + aiReply); // 確認 AI 有沒有說話
+
                     if (typewriterCoroutine != null) StopCoroutine(typewriterCoroutine);
                     typewriterCoroutine = StartCoroutine(TypeText(aiReply));
 
                     chatHistory.Add(new Content { role = "model", parts = new List<Part> { new Part { text = aiReply } } });
+                } else {
+                    Debug.LogWarning("收到回覆，但找不到內容 (可能被過濾了)");
                 }
             } else {
                 Debug.LogError("Gemini API 錯誤: " + request.downloadHandler.text);
-                responseText.text = "連線失敗，請檢查 API Key。";
             }
         }
     }
@@ -148,4 +154,14 @@ public class AIManager : MonoBehaviour {
             }
         }
     }
+
+    // 這些類別要放在 AIManager 類別裡面，或是下方
+    [System.Serializable]
+    public class GeminiResponse { public List<Candidate> candidates; }
+    [System.Serializable]
+    public class Candidate { public Content content; }
+    [System.Serializable]
+    public class Content { public string role; public List<Part> parts; }
+    [System.Serializable]
+    public class Part { public string text; }
 }
