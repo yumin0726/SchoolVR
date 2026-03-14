@@ -3,50 +3,54 @@ using UnityEngine.UI;
 using TMPro;
 
 public class InfoDisplayManager : MonoBehaviour {
-    public static InfoDisplayManager Instance; // 單例模式，方便物品呼叫
+    public static InfoDisplayManager Instance;
 
     [Header("UI 引用")]
-    public GameObject infoPanel;    // 整個看板的物件 (預設先隱藏)
-    public Image displayImage;      // 顯示圖片的 UI Image
-    public TMP_Text titleText;      // 顯示標題
-    public TMP_Text contentText;    // 顯示內容描述
+    public GameObject infoPanel;    
+    public Image displayImage;      
+    public TMP_Text titleText;      
+    public TMP_Text contentText;    
 
-    private AIManager aiManager;    // 引用你之前的 AIManager 來唸聲音
+    private AIManager aiManager;    
+    private string currentItemName; 
 
     void Awake() {
         Instance = this;
         aiManager = Object.FindFirstObjectByType<AIManager>();
-        infoPanel.SetActive(false); // 遊戲開始先關閉
+        infoPanel.SetActive(false); 
     }
 
+    // 1. 打開面板：只負責顯示與「記錄名字」
     public void ShowInfo(ItemInfo info) {
         infoPanel.SetActive(true);
         displayImage.sprite = info.itemImage;
         titleText.text = info.itemName;
         contentText.text = info.description;
 
-        // --- 新增：通知任務系統 ---
-        if (TaskManager.Instance != null) {
-            TaskManager.Instance.CompleteTask(info.itemName);
-        }
-        
-        Cursor.lockState = CursorLockMode.None; // 解除鎖定
+        // --- 關鍵修改：這裡「不」呼叫 TaskManager，只把名字存起來 ---
+        currentItemName = info.itemName; 
+
+        Cursor.lockState = CursorLockMode.None;
         Cursor.visible = true;
 
-        // 叫老皮唸出這段文字
         if (aiManager != null) {
-            // 我們需要把 AIManager 的 DownloadAndPlayVoice 設為 public 才能呼叫
             aiManager.StartCoroutine(aiManager.DownloadAndPlayVoice(info.description));
         }
     }
 
-        // 在 InfoDisplayManager.cs 裡找到這個函式並修改
+    // 2. 關閉面板：這時候才正式通知任務完成
     public void ClosePanel() {
-        infoPanel.SetActive(false); // 關閉看板
-        Cursor.lockState = CursorLockMode.Locked; // 鎖定回中央
-        Cursor.visible = false;                   // 隱藏滑鼠指針
+        infoPanel.SetActive(false); 
 
-        // 讓老皮停止說話
+        // --- 核心改動：按下關閉鈕時，才拿剛才存的名字去完成任務 ---
+        if (!string.IsNullOrEmpty(currentItemName) && TaskManager.Instance != null) {
+            TaskManager.Instance.CompleteTask(currentItemName);
+            currentItemName = ""; // 發送完後清空暫存，避免重複觸發
+        }
+
+        Cursor.lockState = CursorLockMode.Locked; 
+        Cursor.visible = false;                   
+
         if (aiManager != null && aiManager.voicePlayer != null) {
             aiManager.voicePlayer.Stop();
         }
