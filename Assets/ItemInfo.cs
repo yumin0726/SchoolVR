@@ -6,6 +6,8 @@ public class ItemInfo : MonoBehaviour {
     [Header("物品設定")]
     [Tooltip("此名稱必須與 TaskManager 任務清單中的名稱完全一致")]
     public string itemName;      // 物品名稱
+
+    public Transform navTarget; // 在 Inspector 裡把該建築物前方的「空物件」拉進來
     
     [TextArea(3, 10)]
     public string description;   // 物品詳細介紹 (老皮會根據這段唸稿)

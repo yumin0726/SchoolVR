@@ -99,3 +99,4 @@ public class QuestNotification : MonoBehaviour {
         panelRect.anchoredPosition = endPos;
     }
 }
+
