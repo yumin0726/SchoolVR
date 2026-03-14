@@ -8,7 +8,7 @@ using Newtonsoft.Json;
 
 public class AIManager : MonoBehaviour {
     [Header("API 設定")]
-    [SerializeField] private string apiKey = "AIzaSyBl4-2d4ZL-1f0a90WTY_dMXAbcXrifEWQ"; 
+    [SerializeField] private string apiKey = "AIzaSyAIHYPkXuNKItoKrCB-lMfJqyE5WSgIS9o"; 
     private string url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent";
 
     [Header("NPC 設定")]
@@ -137,7 +137,7 @@ public class AIManager : MonoBehaviour {
         }
     }
 
-    IEnumerator DownloadAndPlayVoice(string text) {
+    public IEnumerator DownloadAndPlayVoice(string text) {
         string shortText = text.Length > 100 ? text.Substring(0, 100) : text;
         string ttsUrl = "https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&q=" 
                     + UnityWebRequest.EscapeURL(shortText) + "&tl=zh-TW";
