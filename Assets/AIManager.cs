@@ -8,7 +8,7 @@ using Newtonsoft.Json;
 
 public class AIManager : MonoBehaviour {
     [Header("API 設定")]
-    [SerializeField] private string apiKey = "AIzaSyAIHYPkXuNKItoKrCB-lMfJqyE5WSgIS9o"; 
+    [SerializeField] private string apiKey = "AIzaSyDUFaNmT0TV7V14nw4nNjr6eGkbB4a0Js4"; 
     private string url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent";
 
     [Header("NPC 設定")]
