@@ -63,12 +63,12 @@ public class TaskNavigator : MonoBehaviour {
         }
     }
 
-    // --- 新增：讓箭頭貼圖移動的效果 ---
-    void AnimateLine() {
+        // --- 新增：讓箭頭貼圖移動的效果 ---
+        void AnimateLine() {
         if (lineMaterial != null) {
-            // 讓材質球的 Texture Offset 隨著時間改變，產生箭頭往前跑的感覺
+            // 讓貼圖隨時間位移
             float offset = Time.time * scrollSpeed;
-            // 注意：如果你的箭頭貼圖方向相反，就把 offset 改成 -offset
+            // 如果箭頭是往後跑的，就把 offset 改成正的或負的
             lineMaterial.mainTextureOffset = new Vector2(-offset, 0);
         }
     }
